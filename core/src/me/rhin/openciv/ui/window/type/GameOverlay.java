@@ -80,19 +80,25 @@ public class GameOverlay extends AbstractWindow implements ResizeListener {
 			return;
 		}
 		
-		// [grass,copper]
+		// [grass, copper +2 (Food Icon)]
+		
 		String tileName = "";
+		String tileYield = ";
 		int index = 0;
 		for (TileTypeWrapper typeWrapper : tile.getTileTypeWrappers()) {
 
 			tileName += typeWrapper.getTileType().getName();
+			
+			tileYield += typeWrapper.getTileType().getStatLine().toString();
+			// StatLine.toString() should be changed to fit format in issue#14 [+2 (Food Icon)]
 
 			if (index < tile.getTileTypeWrappers().size() - 1) {
 				tileName += ", ";
+				tileYield += " ";
 			}
 			index++;
 		}
 
-		tileNameLabel.setText(tileName);
+		tileNameLabel.setText(tileName + tileYield);
 	}
 }
