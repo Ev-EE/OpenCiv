@@ -26,7 +26,16 @@ public enum TileType {
 	COPPER(TextureEnum.TILE_COPPER, TileLayer.MIDDLE, TileProperty.RESOURCE, TileProperty.MINEABLE),
 	COTTON(TextureEnum.TILE_COTTON, TileLayer.MIDDLE, TileProperty.RESOURCE),
 	GEMS(TextureEnum.TILE_GEMS, TileLayer.MIDDLE, TileProperty.RESOURCE, TileProperty.MINEABLE),
-	FARM(TextureEnum.TILE_FARM, TileLayer.HIGH, TileProperty.IMPROVEMENT);
+	FARM(TextureEnum.TILE_FARM, TileLayer.HIGH, TileProperty.IMPROVEMENT),
+	GEMS_IMPROVED(TextureEnum.TILE_GEMS_IMPROVED, TileLayer.MIDDLE, TileProperty.IMPROVEMENT),
+	COTTON_IMPROVED(TextureEnum.TILE_COTTON_IMPROVED, TileLayer.MIDDLE, TileProperty.IMPROVEMENT),
+	IRON_IMPROVED(TextureEnum.TILE_IRON_IMPROVED, TileLayer.MIDDLE, TileProperty.IMPROVEMENT),
+	COPPER_IMPROVED(TextureEnum.TILE_COPPER_IMPROVED, TileLayer.MIDDLE, TileProperty.IMPROVEMENT),
+	GRASS_HILL_MINE(TextureEnum.TILE_GRASS_HILL_MINE, TileLayer.BASE, TileProperty.RESOURCE),
+	PLAINS_HILL_MINE(TextureEnum.TILE_PLAINS_HILL_MINE, TileLayer.BASE, TileProperty.RESOURCE),
+	DESERT_HILL_MINE(TextureEnum.TILE_DESERT_HILL_MINE, TileLayer.BASE, TileProperty.RESOURCE),
+	TUNDRA_HILL_MINE(TextureEnum.TILE_TUNDRA_HILL_MINE, TileLayer.BASE, TileProperty.RESOURCE),
+	;
 
 	public enum TileLayer {
 		BASE,
@@ -86,13 +95,15 @@ public enum TileType {
 		return movementCost;
 	}
 
-	public boolean hasProperty(TileProperty targetProperty) {
+	public boolean hasProperty(TileProperty... targetProperties) {
 		if (tileProperties == null)
 			return false;
 
-		for (TileProperty tileProperty : tileProperties)
-			if (tileProperty == targetProperty)
-				return true;
+		for (TileProperty tileProperty : tileProperties) {
+			for (TileProperty targetProperty : targetProperties)
+				if (tileProperty == targetProperty)
+					return true;
+		}
 
 		return false;
 	}

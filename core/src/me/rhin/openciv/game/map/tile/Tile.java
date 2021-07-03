@@ -56,10 +56,11 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 
 	private GameMap map;
 	private TreeSet<TileTypeWrapper> tileWrappers;
-	private Sprite selectionSprite;
 	private Sprite territorySprite;
+	private Sprite selectionSprite;
 	private Sprite fogSprite;
 	private Sprite nonVisibleSprite;
+	private Sprite rangedTargetSprite;
 	private boolean[] territoryBorders;
 	private boolean drawSelection;
 	private CustomLabel posLabel;
@@ -75,6 +76,7 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 	private ArrayList<TileObserver> tileObservers;
 	private boolean improved;
 	private int appliedImprovementTurns;
+	private boolean rangedTarget;
 
 	public Tile(GameMap map, TileType tileType, float x, float y) {
 		Civilization.getInstance().getEventManager().addListener(BottomShapeRenderListener.class, this);
@@ -91,12 +93,17 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		this.territorySprite = new Sprite(TextureEnum.TILE_SELECT.sprite());
 		this.territoryBorders = new boolean[6];
 
+		this.rangedTargetSprite = new Sprite(TextureEnum.TILE_SELECT.sprite());
+		rangedTargetSprite.setColor(Color.RED);
+		rangedTargetSprite.setAlpha(0.25f);
+
 		this.fogSprite = new Sprite(TextureEnum.TILE_UNDISCOVERED.sprite());
 		this.nonVisibleSprite = new Sprite(TextureEnum.TILE_NON_VISIBLE.sprite());
 		nonVisibleSprite.setAlpha(0.7f);
 
 		this.drawSelection = false;
 		this.improved = false;
+		this.rangedTarget = false;
 
 		// FIXME: Remove our own x,y,and size variables, and use the actors instead.
 		this.x = x;
@@ -108,7 +115,6 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		this.riverSides = new RiverPart[6];
 		this.units = new ArrayList<>();
 		this.tileObservers = new ArrayList<>();
-		this.improved = false;
 		this.appliedImprovementTurns = 0;
 
 		this.posLabel = new CustomLabel(gridX + "," + gridY);
@@ -187,8 +193,12 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 			selectionSprite.draw(batch);
 		}
 
-		if (territory != null && tileObservers.size() > 0)
+		if (territory != null && tileObservers.size() > 0 && !rangedTarget)
 			territorySprite.draw(batch);
+
+		if (rangedTarget) {
+			rangedTargetSprite.draw(batch);
+		}
 
 		// posLabel.draw(batch, 1);
 	}
@@ -256,6 +266,17 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		// Add the tileType to the Array in an ordered manner. note: this will never be
 		// a baseTile
 		tileWrappers.add(new TileTypeWrapper(tileType, x, y, 28, 32));
+	}
+
+	public void removeTileType(TileType tileType) {
+
+		if (tileType == null)
+			return;
+
+		for (TileTypeWrapper tileWrapper : tileWrappers) {
+			if (tileWrapper.getTileType() == tileType)
+				tileWrappers.remove(tileWrapper);
+		}
 	}
 
 	public void addUnit(Unit unit) {
@@ -400,6 +421,15 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		return false;
 	}
 
+	public boolean containsTileType(TileType tileType) {
+		for (TileTypeWrapper tileWrapper : tileWrappers) {
+			if (tileWrapper.getTileType() == tileType)
+				return true;
+		}
+
+		return false;
+	}
+
 	public int getMovementCost(Tile prevTile) {
 		int movementCost = 0;
 		// Check if the tile were moving to
@@ -427,9 +457,8 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		}
 
 		TileTypeWrapper topWrapper = ((TileTypeWrapper) tileWrappers.toArray()[tileWrappers.size() - 1]);
-		if (topWrapper.getTileType().hasProperty(TileProperty.RESOURCE)) {
-			int tileMovementCost = ((TileTypeWrapper) tileWrappers.toArray()[tileWrappers.size() - 2]).getTileType()
-					.getMovementCost();
+		if (topWrapper.getTileType().hasProperty(TileProperty.RESOURCE, TileProperty.IMPROVEMENT)) {
+			int tileMovementCost = ((TileTypeWrapper) tileWrappers.toArray()[0]).getTileType().getMovementCost();
 			if (tileMovementCost > movementCost) {
 				movementCost = tileMovementCost;
 			}
@@ -534,7 +563,8 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 				continue;
 			}
 			for (Tile adjTile : tile.getAdjTiles()) {
-
+				if (adjTile == null)
+					continue;
 				adjTile.setDiscovered(true);
 				if (!adjTile.getTileObservers().contains(tileObserver))
 					adjTile.getTileObservers().add(tileObserver);
@@ -543,8 +573,20 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 		}
 	}
 
+	public void setImproved(boolean improved) {
+		this.improved = improved;
+	}
+
 	private void setDiscovered(boolean discovered) {
 		this.discovered = discovered;
+	}
+
+	public void setRangedTarget(boolean rangedTarget) {
+		this.rangedTarget = rangedTarget;
+	}
+
+	public boolean hasRangedTarget() {
+		return rangedTarget;
 	}
 
 	private void initializeVectors() {
@@ -607,5 +649,8 @@ public class Tile extends Actor implements BottomShapeRenderListener {
 
 		nonVisibleSprite.setSize(28, 32);
 		nonVisibleSprite.setPosition(x, y);
+
+		rangedTargetSprite.setSize(28, 32);
+		rangedTargetSprite.setPosition(x, y);
 	}
 }

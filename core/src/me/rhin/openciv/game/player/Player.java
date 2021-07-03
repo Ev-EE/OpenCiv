@@ -2,14 +2,13 @@ package me.rhin.openciv.game.player;
 
 import java.util.ArrayList;
 
-import com.badlogic.gdx.graphics.Color;
-
 import me.rhin.openciv.Civilization;
 import me.rhin.openciv.game.city.City;
 import me.rhin.openciv.game.civilization.CivType;
 import me.rhin.openciv.game.map.tile.Tile;
 import me.rhin.openciv.game.research.ResearchTree;
 import me.rhin.openciv.game.unit.Unit;
+import me.rhin.openciv.listener.LeftClickEnemyUnitListener.LeftClickEnemyUnitEvent;
 import me.rhin.openciv.listener.LeftClickListener;
 import me.rhin.openciv.listener.PlayerStatUpdateListener;
 import me.rhin.openciv.listener.RelativeMouseMoveListener;
@@ -71,9 +70,11 @@ public class Player implements RelativeMouseMoveListener, LeftClickListener, Rig
 			return;
 
 		Unit unit = hoveredTile.getNextUnit();
-		if (!unit.getPlayerOwner().equals(this))
-			return;
+		if (!unit.getPlayerOwner().equals(this)) {
 
+			Civilization.getInstance().getEventManager().fireEvent(new LeftClickEnemyUnitEvent(unit));
+			return;
+		}
 		if (unit.isSelected())
 			return;
 
@@ -120,6 +121,7 @@ public class Player implements RelativeMouseMoveListener, LeftClickListener, Rig
 		return name;
 	}
 
+	// FIXME: Does the server know we don't have this unit selected anymore?
 	public void unselectUnit() {
 		if (selectedUnit == null)
 			return;
@@ -173,5 +175,17 @@ public class Player implements RelativeMouseMoveListener, LeftClickListener, Rig
 
 	public void removeCity(City city) {
 		ownedCities.remove(city);
+	}
+
+	public StatLine getStatLine() {
+		return statLine;
+	}
+
+	public Tile getHoveredTile() {
+		return hoveredTile;
+	}
+
+	public Unit getSelectedUnit() {
+		return selectedUnit;
 	}
 }

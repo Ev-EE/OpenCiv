@@ -23,10 +23,12 @@ import me.rhin.openciv.server.game.map.tile.Tile.TileTypeWrapper;
 import me.rhin.openciv.server.game.map.tile.TileType;
 import me.rhin.openciv.server.game.map.tile.TileType.TileProperty;
 import me.rhin.openciv.server.game.unit.AttackableEntity;
+import me.rhin.openciv.server.game.unit.RangedUnit;
 import me.rhin.openciv.server.game.unit.Unit;
 import me.rhin.openciv.server.game.unit.type.Builder.BuilderUnit;
 import me.rhin.openciv.server.game.unit.type.Settler.SettlerUnit;
 import me.rhin.openciv.server.game.unit.type.Warrior.WarriorUnit;
+import me.rhin.openciv.server.game.unit.type.WorkBoat.WorkBoatUnit;
 import me.rhin.openciv.server.listener.ClickSpecialistListener;
 import me.rhin.openciv.server.listener.ClickWorkedTileListener;
 import me.rhin.openciv.server.listener.CombatPreviewListener;
@@ -36,6 +38,7 @@ import me.rhin.openciv.server.listener.FetchPlayerListener;
 import me.rhin.openciv.server.listener.NextTurnListener;
 import me.rhin.openciv.server.listener.PlayerFinishLoadingListener;
 import me.rhin.openciv.server.listener.PlayerListRequestListener;
+import me.rhin.openciv.server.listener.RangedAttackListener;
 import me.rhin.openciv.server.listener.SelectUnitListener;
 import me.rhin.openciv.server.listener.SetProductionItemListener;
 import me.rhin.openciv.server.listener.SettleCityListener;
@@ -52,6 +55,8 @@ import me.rhin.openciv.shared.packet.type.MoveUnitPacket;
 import me.rhin.openciv.shared.packet.type.NextTurnPacket;
 import me.rhin.openciv.shared.packet.type.PlayerDisconnectPacket;
 import me.rhin.openciv.shared.packet.type.PlayerListRequestPacket;
+import me.rhin.openciv.shared.packet.type.PlayerStatUpdatePacket;
+import me.rhin.openciv.shared.packet.type.RangedAttackPacket;
 import me.rhin.openciv.shared.packet.type.SelectUnitPacket;
 import me.rhin.openciv.shared.packet.type.SetCityHealthPacket;
 import me.rhin.openciv.shared.packet.type.SetCityOwnerPacket;
@@ -62,12 +67,14 @@ import me.rhin.openciv.shared.packet.type.TerritoryGrowPacket;
 import me.rhin.openciv.shared.packet.type.TurnTimeLeftPacket;
 import me.rhin.openciv.shared.packet.type.UnitAttackPacket;
 import me.rhin.openciv.shared.packet.type.WorkTilePacket;
+import me.rhin.openciv.shared.stat.Stat;
 
 //FIXME: Instead of the civ game listening for everything. Just split them off into the respective classes. (EX: CombatPreviewListener in the Unit class)
+//Or just use reflection so we don't have to implement 20+ classes.
 public class InGameState extends GameState implements DisconnectListener, SelectUnitListener, UnitMoveListener,
 		SettleCityListener, PlayerFinishLoadingListener, NextTurnListener, SetProductionItemListener,
 		ClickWorkedTileListener, ClickSpecialistListener, EndTurnListener, PlayerListRequestListener,
-		FetchPlayerListener, CombatPreviewListener, WorkTileListener {
+		FetchPlayerListener, CombatPreviewListener, WorkTileListener, RangedAttackListener {
 
 	private static final int BASE_TURN_TIME = 9;
 
@@ -92,6 +99,7 @@ public class InGameState extends GameState implements DisconnectListener, Select
 		Server.getInstance().getEventManager().addListener(FetchPlayerListener.class, this);
 		Server.getInstance().getEventManager().addListener(CombatPreviewListener.class, this);
 		Server.getInstance().getEventManager().addListener(WorkTileListener.class, this);
+		Server.getInstance().getEventManager().addListener(RangedAttackListener.class, this);
 	}
 
 	@Override
@@ -219,6 +227,7 @@ public class InGameState extends GameState implements DisconnectListener, Select
 					targetTile = unit.getStandingTile();
 			}
 
+		// Move to target tile
 		if (unit.getMovement() >= unit.getPathMovement() && !unit.getStandingTile().equals(targetTile)) {
 
 			unit.moveToTargetTile();
@@ -296,9 +305,16 @@ public class InGameState extends GameState implements DisconnectListener, Select
 
 					// When we capture a city
 					if (targetEntity instanceof City) {
+						
 						City city = (City) targetEntity;
 						city.setHealth(city.getMaxHealth() / 2);
+
+						//Reduce statline of the original owner
+						city.getPlayerOwner().reduceStatLine(city.getStatLine());
+
+						city.getPlayerOwner().removeCity(city);
 						city.setOwner(unit.getPlayerOwner());
+						unit.getPlayerOwner().addCity(city);
 
 						SetCityOwnerPacket cityOwnerPacket = new SetCityOwnerPacket();
 						cityOwnerPacket.setCity(city.getName(), unit.getPlayerOwner().getName());
@@ -313,6 +329,8 @@ public class InGameState extends GameState implements DisconnectListener, Select
 						for (Player player : players) {
 							player.getConn().send(json.toJson(cityHealthPacket));
 						}
+
+						city.getPlayerOwner().mergeStatLine(city.getStatLine());
 
 						// Kill all enemy units inside the city
 						for (Unit cityUnit : city.getTile().getUnits()) {
@@ -431,9 +449,10 @@ public class InGameState extends GameState implements DisconnectListener, Select
 		// Verify if the player owns that city.
 		Player player = getPlayerByConn(conn);
 		City targetCity = null;
-		for (City city : player.getOwnedCities())
+		for (City city : player.getOwnedCities()) {
 			if (city.getName().equals(packet.getCityName()))
 				targetCity = city;
+		}
 
 		// TODO: Verify if the item can be produced.
 
@@ -530,11 +549,76 @@ public class InGameState extends GameState implements DisconnectListener, Select
 		AttackableEntity targetEntity = map.getTiles()[packet.getTargetGridX()][packet.getTargetGridY()]
 				.getAttackableEntity();
 
-		packet.setUnitDamage(attackingEntity.getDamageTaken(targetEntity));
+		if (attackingEntity instanceof RangedUnit) {
+			packet.setUnitDamage(0);
+		} else
+			packet.setUnitDamage(attackingEntity.getDamageTaken(targetEntity));
+
 		packet.setTargetDamage(targetEntity.getDamageTaken(attackingEntity));
 
 		Json json = new Json();
 		conn.send(json.toJson(packet));
+	}
+
+	@Override
+	public void onRangedAttack(WebSocket conn, RangedAttackPacket packet) {
+		// FIXME: I don't check unit ID's here
+		AttackableEntity attackingEntity = map.getTiles()[packet.getUnitGridX()][packet.getUnitGridY()]
+				.getAttackableEntity();
+		AttackableEntity targetEntity = map.getTiles()[packet.getTargetGridX()][packet.getTargetGridY()]
+				.getAttackableEntity();
+
+		if (attackingEntity instanceof Unit) {
+			((Unit) attackingEntity).reduceMovement(2);
+		}
+
+		// FIXME: Slight redundant code w/ mele attack.
+		if (!attackingEntity.getPlayerOwner().equals(targetEntity.getPlayerOwner())) {
+			// We are about to attack this unit on the tile
+
+			Json json = new Json();
+			float unitDamage = attackingEntity.getDamageTaken(targetEntity);
+			float targetDamage = targetEntity.getDamageTaken(attackingEntity);
+
+			attackingEntity.setHealth(attackingEntity.getHealth() - unitDamage);
+			targetEntity.setHealth(targetEntity.getHealth() - targetDamage);
+
+			// If our ranged unit reduces the city below health, just set it to the min
+			// amount.
+			if (targetEntity instanceof City && targetEntity.getHealth() < 0) {
+				targetEntity.setHealth(1);
+			}
+
+			if (targetEntity.getHealth() > 0) {
+				UnitAttackPacket attackPacket = new UnitAttackPacket();
+				attackPacket.setUnitLocations(attackingEntity.getTile().getGridX(),
+						attackingEntity.getTile().getGridY(), targetEntity.getTile().getGridX(),
+						targetEntity.getTile().getGridY());
+				attackPacket.setUnitDamage(unitDamage);
+				attackPacket.setTargetDamage(targetDamage);
+
+				for (Player player : players) {
+					player.getConn().send(json.toJson(attackPacket));
+				}
+			}
+
+			if (targetEntity.getHealth() <= 0) {
+				if (targetEntity instanceof Unit && targetEntity.getTile().getCity() == null) {
+
+					Unit targetUnit = (Unit) targetEntity;
+					targetUnit.getStandingTile().removeUnit(targetUnit);
+
+					// FIXME: Redundant code.
+					DeleteUnitPacket removeUnitPacket = new DeleteUnitPacket();
+					removeUnitPacket.setUnit(targetUnit.getID(), targetUnit.getStandingTile().getGridX(),
+							targetUnit.getStandingTile().getGridY());
+
+					for (Player player : players) {
+						player.getConn().send(json.toJson(removeUnitPacket));
+					}
+				}
+			}
+		}
 	}
 
 	@Override
@@ -549,6 +633,13 @@ public class InGameState extends GameState implements DisconnectListener, Select
 				builder.setBuilding(true);
 				builder.setImprovement(packet.getImprovementType());
 				builder.reduceMovement(2);
+			}
+
+			if (unit instanceof WorkBoatUnit) {
+				WorkBoatUnit workBoat = (WorkBoatUnit) unit;
+				// workBoat.setBuilding(true);
+				// workBoat.setImprovement(packet.getImprovementType());
+				workBoat.reduceMovement(2);
 			}
 		}
 	}
@@ -740,5 +831,4 @@ public class InGameState extends GameState implements DisconnectListener, Select
 
 		return hasSafeTile;
 	}
-
 }

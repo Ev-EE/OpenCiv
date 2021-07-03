@@ -4,20 +4,23 @@ import java.util.ArrayList;
 
 import org.java_websocket.WebSocket;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.utils.Json;
 
 import me.rhin.openciv.server.Server;
 import me.rhin.openciv.server.game.city.City;
 import me.rhin.openciv.server.game.civilization.CivType;
 import me.rhin.openciv.server.game.policy.PolicyManager;
+import me.rhin.openciv.server.game.research.ResearchTree;
 import me.rhin.openciv.server.game.unit.Unit;
+import me.rhin.openciv.server.listener.ChooseTechListener;
 import me.rhin.openciv.server.listener.NextTurnListener;
+import me.rhin.openciv.shared.packet.type.ChooseTechPacket;
 import me.rhin.openciv.shared.packet.type.PlayerStatUpdatePacket;
 import me.rhin.openciv.shared.stat.Stat;
 import me.rhin.openciv.shared.stat.StatLine;
+import me.rhin.openciv.shared.stat.StatType;
 
-public class Player implements NextTurnListener {
+public class Player implements NextTurnListener, ChooseTechListener {
 
 	private WebSocket conn;
 	private String name;
@@ -31,6 +34,7 @@ public class Player implements NextTurnListener {
 	private PolicyManager policyManager;
 	private CivType civType;
 	private boolean host;
+	private ResearchTree researchTree;
 
 	public Player(WebSocket conn) {
 		this.conn = conn;
@@ -46,8 +50,10 @@ public class Player implements NextTurnListener {
 
 		policyManager = new PolicyManager(this);
 		this.host = false;
+		this.researchTree = new ResearchTree(this);
 
 		Server.getInstance().getEventManager().addListener(NextTurnListener.class, this);
+		Server.getInstance().getEventManager().addListener(ChooseTechListener.class, this);
 	}
 
 	@Override
@@ -55,13 +61,32 @@ public class Player implements NextTurnListener {
 		if (ownedCities.size() < 1)
 			return;
 
-		try {
-			statLine.updateStatLine();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		statLine.updateStatLine();
 
-		// FIXME: We should have a universal method for this, dunno where to put it.
+		statLine.clearNonAccumulative();
+
+		for (City city : ownedCities)
+			statLine.mergeStatLineExcluding(city.getStatLine(), StatType.CITY_EXCLUSIVE);
+
+		PlayerStatUpdatePacket packet = new PlayerStatUpdatePacket();
+		for (Stat stat : statLine.getStatValues().keySet()) {
+			if (stat.getStatType() != StatType.CITY_EXCLUSIVE)
+				packet.addStat(stat.name(), this.statLine.getStatValues().get(stat));
+		}
+		Json json = new Json();
+		conn.send(json.toJson(packet));
+	}
+
+	@Override
+	public void onChooseTech(WebSocket conn, ChooseTechPacket packet) {
+		if (!conn.equals(this.conn))
+			return;
+
+		researchTree.chooseTech(packet.getTechID());
+	}
+
+	public void mergeStatLine(StatLine statLine) {
+		this.statLine.mergeStatLine(statLine);
 		PlayerStatUpdatePacket packet = new PlayerStatUpdatePacket();
 		for (Stat stat : this.statLine.getStatValues().keySet()) {
 			packet.addStat(stat.name(), this.statLine.getStatValues().get(stat));
@@ -70,11 +95,8 @@ public class Player implements NextTurnListener {
 		conn.send(json.toJson(packet));
 	}
 
-	// FIXME: Find a better name that isn't the same as the statline class method.
-	public void mergeStatLine(StatLine statLine) {
-		this.statLine.mergeStatLine(statLine);
-
-		// FIXME: We should have a universal method for this, dunno where to put it.
+	public void reduceStatLine(StatLine statLine) {
+		this.statLine.reduceStatLine(statLine);
 		PlayerStatUpdatePacket packet = new PlayerStatUpdatePacket();
 		for (Stat stat : this.statLine.getStatValues().keySet()) {
 			packet.addStat(stat.name(), this.statLine.getStatValues().get(stat));
@@ -160,5 +182,13 @@ public class Player implements NextTurnListener {
 
 	public CivType getCivType() {
 		return civType;
+	}
+
+	public ResearchTree getResearchTree() {
+		return researchTree;
+	}
+
+	public void removeCity(City city) {
+		ownedCities.remove(city);
 	}
 }

@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import me.rhin.openciv.server.game.map.tile.improvement.ChopImprovement;
+import me.rhin.openciv.server.game.map.tile.improvement.MineImprovement;
+import me.rhin.openciv.server.game.map.tile.improvement.TileImprovement;
 import me.rhin.openciv.shared.stat.Stat;
 import me.rhin.openciv.shared.stat.StatLine;
 
@@ -43,7 +46,10 @@ public enum TileType implements Comparable<TileType> {
 
 		@Override
 		public List<TileImprovement> getImprovements() {
-			return Arrays.asList(new TileImprovement(TileType.FARM, 5));
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.GRASS_HILL_MINE, 5));
+			improvements.add(new TileImprovement(TileType.FARM, 5));
+			return improvements;
 		}
 	},
 	PLAINS(TileLayer.BASE) {
@@ -75,7 +81,10 @@ public enum TileType implements Comparable<TileType> {
 
 		@Override
 		public List<TileImprovement> getImprovements() {
-			return Arrays.asList(new TileImprovement(TileType.FARM, 5));
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.PLAINS_HILL_MINE, 5));
+			improvements.add(new TileImprovement(TileType.FARM, 5));
+			return improvements;
 		}
 	},
 	DESERT(TileLayer.BASE) {
@@ -110,6 +119,13 @@ public enum TileType implements Comparable<TileType> {
 		public int getMovementCost() {
 			return 2;
 		}
+		
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.DESERT_HILL_MINE, 5));
+			return improvements;
+		}
 	},
 	TUNDRA(TileLayer.BASE) {
 		@Override
@@ -129,6 +145,13 @@ public enum TileType implements Comparable<TileType> {
 		@Override
 		public int getMovementCost() {
 			return 2;
+		}
+		
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.TUNDRA_HILL_MINE, 5));
+			return improvements;
 		}
 	},
 	OCEAN(TileLayer.BASE, TileProperty.WATER) {
@@ -159,7 +182,7 @@ public enum TileType implements Comparable<TileType> {
 			return 1000000;
 		}
 	},
-	FOREST(TileLayer.MIDDLE) {
+	FOREST(TileLayer.HIGH) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
@@ -172,8 +195,15 @@ public enum TileType implements Comparable<TileType> {
 		public int getMovementCost() {
 			return 2;
 		}
+
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new ChopImprovement(3));
+			return improvements;
+		}
 	},
-	JUNGLE(TileLayer.MIDDLE) {
+	JUNGLE(TileLayer.HIGH) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
@@ -186,7 +216,7 @@ public enum TileType implements Comparable<TileType> {
 			return 2;
 		}
 	},
-	HORSES(TileLayer.HIGH, TileProperty.RESOURCE) {
+	HORSES(TileLayer.MIDDLE, TileProperty.RESOURCE) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
@@ -194,31 +224,52 @@ public enum TileType implements Comparable<TileType> {
 			return statLine;
 		}
 	},
-	IRON(TileLayer.HIGH, TileProperty.RESOURCE) {
+	IRON(TileLayer.MIDDLE, TileProperty.RESOURCE) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
 			statLine.setValue(Stat.PRODUCTION_GAIN, 1);
 			return statLine;
 		}
+
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.IRON_IMPROVED, 5));
+			return improvements;
+		}
 	},
-	COPPER(TileLayer.HIGH, TileProperty.LUXURY) {
+	COPPER(TileLayer.MIDDLE, TileProperty.LUXURY) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
 			statLine.setValue(Stat.GOLD_GAIN, 2);
 			return statLine;
 		}
+
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.COPPER_IMPROVED, 5));
+			return improvements;
+		}
 	},
-	COTTON(TileLayer.HIGH, TileProperty.LUXURY) {
+	COTTON(TileLayer.MIDDLE, TileProperty.LUXURY) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
 			statLine.setValue(Stat.GOLD_GAIN, 2);
 			return statLine;
 		}
+
+		@Override
+		public List<TileImprovement> getImprovements() {
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.COTTON_IMPROVED, 5));
+			return improvements;
+		}
 	},
-	GEMS(TileLayer.HIGH, TileProperty.LUXURY) {
+	GEMS(TileLayer.MIDDLE, TileProperty.LUXURY) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
@@ -228,10 +279,12 @@ public enum TileType implements Comparable<TileType> {
 
 		@Override
 		public List<TileImprovement> getImprovements() {
-			return Arrays.asList(new TileImprovement(TileType.GEMS_IMPROVED, 5));
+			ArrayList<TileImprovement> improvements = new ArrayList<>();
+			improvements.add(new MineImprovement(TileType.GEMS_IMPROVED, 5));
+			return improvements;
 		}
 	},
-	FARM(TileLayer.HIGH, TileProperty.IMPROVEMENT) {
+	FARM(TileLayer.MIDDLE, TileProperty.IMPROVEMENT) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
@@ -239,15 +292,72 @@ public enum TileType implements Comparable<TileType> {
 			return statLine;
 		}
 	},
-	GEMS_IMPROVED(TileLayer.HIGH, TileProperty.IMPROVEMENT) {
+	GEMS_IMPROVED(TileLayer.MIDDLE, TileProperty.IMPROVEMENT) {
 		@Override
 		public StatLine getStatLine() {
 			StatLine statLine = new StatLine();
 			statLine.addValue(Stat.GOLD_GAIN, 3);
+			statLine.addValue(Stat.PRODUCTION_GAIN, 1);
+			return statLine;
+		}
+	},
+	COTTON_IMPROVED(TileLayer.MIDDLE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.GOLD_GAIN, 3);
+			return statLine;
+		}
+	},
+	IRON_IMPROVED(TileLayer.MIDDLE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.PRODUCTION_GAIN, 1);
+			return statLine;
+		}
+	},
+	COPPER_IMPROVED(TileLayer.MIDDLE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.PRODUCTION_GAIN, 1);
+			return statLine;
+		}
+	},
+	GRASS_HILL_MINE(TileLayer.BASE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
 			statLine.addValue(Stat.PRODUCTION_GAIN, 3);
 			return statLine;
 		}
-	};
+	},
+	PLAINS_HILL_MINE(TileLayer.BASE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.PRODUCTION_GAIN, 3);
+			return statLine;
+		}
+	},
+	TUNDRA_HILL_MINE(TileLayer.BASE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.PRODUCTION_GAIN, 3);
+			return statLine;
+		}
+	},
+	DESERT_HILL_MINE(TileLayer.BASE, TileProperty.IMPROVEMENT) {
+		@Override
+		public StatLine getStatLine() {
+			StatLine statLine = new StatLine();
+			statLine.addValue(Stat.PRODUCTION_GAIN, 3);
+			return statLine;
+		}
+	},
+	;
 
 	public enum TileLayer {
 		BASE,
@@ -300,14 +410,15 @@ public enum TileType implements Comparable<TileType> {
 		return tileProperties;
 	}
 
-	public boolean hasProperty(TileProperty targetProperty) {
+	public boolean hasProperty(TileProperty... targetProperties) {
 		if (tileProperties == null)
 			return false;
 
-		for (TileProperty tileProperty : tileProperties)
-			if (tileProperty == targetProperty)
-				return true;
-
+		for (TileProperty tileProperty : tileProperties) {
+			for (TileProperty targetProperty : targetProperties)
+				if (tileProperty == targetProperty)
+					return true;
+		}
 		return false;
 	}
 

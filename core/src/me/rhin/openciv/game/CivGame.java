@@ -19,6 +19,7 @@ import me.rhin.openciv.game.unit.Unit;
 import me.rhin.openciv.game.unit.UnitParameter;
 import me.rhin.openciv.game.unit.type.Settler.SettlerUnit;
 import me.rhin.openciv.listener.AddUnitListener;
+import me.rhin.openciv.listener.CityStatUpdateListener;
 import me.rhin.openciv.listener.DeleteUnitListener;
 import me.rhin.openciv.listener.FetchPlayerListener;
 import me.rhin.openciv.listener.FinishLoadingRequestListener;
@@ -27,7 +28,6 @@ import me.rhin.openciv.listener.MoveUnitListener;
 import me.rhin.openciv.listener.NextTurnListener;
 import me.rhin.openciv.listener.PlayerConnectListener;
 import me.rhin.openciv.listener.PlayerListRequestListener;
-import me.rhin.openciv.listener.PlayerStatUpdateListener;
 import me.rhin.openciv.listener.RelativeMouseMoveListener;
 import me.rhin.openciv.listener.RightClickListener;
 import me.rhin.openciv.listener.SelectUnitListener;
@@ -111,8 +111,9 @@ public class CivGame implements PlayerConnectListener, AddUnitListener, PlayerLi
 			UnitParameter unitParameter = new UnitParameter(packet.getUnitID(), packet.getUnitName(), playerOwner,
 					tile);
 
-			Class<? extends Unit> unitClass = (Class<? extends Unit>) ClassReflection.forName(
-					"me.rhin.openciv.game.unit.type." + packet.getUnitName() + "$" + packet.getUnitName() + "Unit");
+			Class<? extends Unit> unitClass = (Class<? extends Unit>) ClassReflection
+					.forName("me.rhin.openciv.game.unit.type." + packet.getUnitName().replaceAll("\\s", "") + "$"
+							+ packet.getUnitName().replaceAll("\\s", "") + "Unit");
 
 			Unit unit = (Unit) ClassReflection.getConstructor(unitClass, UnitParameter.class)
 					.newInstance(unitParameter);
@@ -156,7 +157,6 @@ public class CivGame implements PlayerConnectListener, AddUnitListener, PlayerLi
 		Civilization.getInstance().getEventManager().addListener(LeftClickListener.class, player);
 		Civilization.getInstance().getEventManager().addListener(RightClickListener.class, player);
 		Civilization.getInstance().getEventManager().addListener(SelectUnitListener.class, player);
-		Civilization.getInstance().getEventManager().addListener(PlayerStatUpdateListener.class, player);
 	}
 
 	// FIXME: Move these 2 tile methods to map class?

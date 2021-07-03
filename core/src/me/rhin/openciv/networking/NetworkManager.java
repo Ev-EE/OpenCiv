@@ -20,6 +20,7 @@ import me.rhin.openciv.listener.BuildingConstructedListener.BuildingConstructedE
 import me.rhin.openciv.listener.ChooseCivListener.ChooseCivEvent;
 import me.rhin.openciv.listener.CityStatUpdateListener.CityStatUpdateEvent;
 import me.rhin.openciv.listener.CombatPreviewListener.CombatPreviewEvent;
+import me.rhin.openciv.listener.CompleteResearchListener.CompleteResearchEvent;
 import me.rhin.openciv.listener.DeleteUnitListener.DeleteUnitEvent;
 import me.rhin.openciv.listener.FetchPlayerListener.FetchPlayerEvent;
 import me.rhin.openciv.listener.FinishLoadingRequestListener.FinishLoadingRequestEvent;
@@ -34,6 +35,7 @@ import me.rhin.openciv.listener.PlayerListRequestListener.PlayerListRequestEvent
 import me.rhin.openciv.listener.PlayerStatUpdateListener.PlayerStatUpdateEvent;
 import me.rhin.openciv.listener.ReceiveMapChunkListener.ReciveMapChunkEvent;
 import me.rhin.openciv.listener.RemoveSpecialistFromContainerListener.RemoveSpecialistFromContainerEvent;
+import me.rhin.openciv.listener.RemoveTileTypeListener.RemoveTileTypeEvent;
 import me.rhin.openciv.listener.SelectUnitListener.SelectUnitEvent;
 import me.rhin.openciv.listener.ServerConnectListener.ServerConnectEvent;
 import me.rhin.openciv.listener.SetCitizenTileWorkerListener.SetCitizenTileWorkerEvent;
@@ -58,6 +60,7 @@ import me.rhin.openciv.shared.packet.type.BuildingConstructedPacket;
 import me.rhin.openciv.shared.packet.type.ChooseCivPacket;
 import me.rhin.openciv.shared.packet.type.CityStatUpdatePacket;
 import me.rhin.openciv.shared.packet.type.CombatPreviewPacket;
+import me.rhin.openciv.shared.packet.type.CompleteResearchPacket;
 import me.rhin.openciv.shared.packet.type.DeleteUnitPacket;
 import me.rhin.openciv.shared.packet.type.FetchPlayerPacket;
 import me.rhin.openciv.shared.packet.type.FinishLoadingPacket;
@@ -72,6 +75,7 @@ import me.rhin.openciv.shared.packet.type.PlayerDisconnectPacket;
 import me.rhin.openciv.shared.packet.type.PlayerListRequestPacket;
 import me.rhin.openciv.shared.packet.type.PlayerStatUpdatePacket;
 import me.rhin.openciv.shared.packet.type.RemoveSpecialistFromContainerPacket;
+import me.rhin.openciv.shared.packet.type.RemoveTileTypePacket;
 import me.rhin.openciv.shared.packet.type.SelectUnitPacket;
 import me.rhin.openciv.shared.packet.type.SetCitizenTileWorkerPacket;
 import me.rhin.openciv.shared.packet.type.SetCityHealthPacket;
@@ -128,6 +132,8 @@ public class NetworkManager {
 		networkEvents.put(SetCityHealthPacket.class, SetCityHealthEvent.class);
 		networkEvents.put(WorkTilePacket.class, WorkTileEvent.class);
 		networkEvents.put(SetTileTypePacket.class, SetTileTypeEvent.class);
+		networkEvents.put(CompleteResearchPacket.class, CompleteResearchEvent.class);
+		networkEvents.put(RemoveTileTypePacket.class, RemoveTileTypeEvent.class);
 	}
 
 	public void connect(String ip) {

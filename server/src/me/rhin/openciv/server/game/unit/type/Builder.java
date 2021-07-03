@@ -1,12 +1,17 @@
 package me.rhin.openciv.server.game.unit.type;
 
 import me.rhin.openciv.server.game.Player;
+import me.rhin.openciv.server.game.city.City;
 import me.rhin.openciv.server.game.map.tile.Tile;
 import me.rhin.openciv.server.game.map.tile.TileType.TileProperty;
 import me.rhin.openciv.server.game.unit.Unit;
 import me.rhin.openciv.server.game.unit.UnitItem;
 
 public class Builder extends UnitItem {
+
+	public Builder(City city) {
+		super(city);
+	}
 
 	public static class BuilderUnit extends Unit {
 
@@ -23,10 +28,10 @@ public class Builder extends UnitItem {
 			// Update all the worked tiles
 			if (building) {
 				getStandingTile().workTile(this, improvement);
-				if (getStandingTile().getTileImprovement().isFinished()) {
+				if (getStandingTile().getTileImprovement() == null
+						|| getStandingTile().getTileImprovement().isFinished()) {
 					building = false;
 					improvement = null;
-					// TOOD: Send proper packets for this stuff.
 				}
 			}
 
@@ -82,5 +87,10 @@ public class Builder extends UnitItem {
 	@Override
 	public boolean meetsProductionRequirements() {
 		return true;
+	}
+
+	@Override
+	public String getName() {
+		return "Builder";
 	}
 }

@@ -1,6 +1,7 @@
 package me.rhin.openciv.server.game.unit.type;
 
 import me.rhin.openciv.server.game.Player;
+import me.rhin.openciv.server.game.city.City;
 import me.rhin.openciv.server.game.map.tile.Tile;
 import me.rhin.openciv.server.game.map.tile.TileType;
 import me.rhin.openciv.server.game.map.tile.TileType.TileProperty;
@@ -8,6 +9,10 @@ import me.rhin.openciv.server.game.unit.Unit;
 import me.rhin.openciv.server.game.unit.UnitItem;
 
 public class Scout extends UnitItem {
+
+	public Scout(City city) {
+		super(city);
+	}
 
 	public static class ScoutUnit extends Unit {
 
@@ -44,5 +49,10 @@ public class Scout extends UnitItem {
 	@Override
 	public boolean meetsProductionRequirements() {
 		return true;
+	}
+	
+	@Override
+	public String getName() {
+		return "Scout";
 	}
 }

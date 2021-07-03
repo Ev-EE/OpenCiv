@@ -21,12 +21,14 @@ import me.rhin.openciv.server.game.city.specialist.Specialist;
 import me.rhin.openciv.server.game.city.specialist.SpecialistContainer;
 import me.rhin.openciv.server.game.city.specialist.UnemployedSpecialist;
 import me.rhin.openciv.server.game.map.tile.Tile;
+import me.rhin.openciv.server.game.map.tile.TileType.TileProperty;
 import me.rhin.openciv.server.game.production.ProducibleItemManager;
 import me.rhin.openciv.server.game.unit.AttackableEntity;
 import me.rhin.openciv.server.listener.NextTurnListener;
 import me.rhin.openciv.shared.packet.type.AddSpecialistToContainerPacket;
 import me.rhin.openciv.shared.packet.type.BuildingConstructedPacket;
 import me.rhin.openciv.shared.packet.type.CityStatUpdatePacket;
+import me.rhin.openciv.shared.packet.type.PlayerStatUpdatePacket;
 import me.rhin.openciv.shared.packet.type.RemoveSpecialistFromContainerPacket;
 import me.rhin.openciv.shared.packet.type.SetCitizenTileWorkerPacket;
 import me.rhin.openciv.shared.packet.type.TerritoryGrowPacket;
@@ -131,6 +133,8 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 			statUpdatePacket.addStat(name, stat.name(), this.statLine.getStatValues().get(stat));
 		}
 		playerOwner.getConn().send(json.toJson(statUpdatePacket));
+		
+		//!!! Update player 
 	}
 
 	@Override
@@ -162,9 +166,9 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 			}
 		}
 
-		statLine.addValue(Stat.HERITAGE, statLine.getStatValue(Stat.HERITAGE_GAIN));
+		statLine.addValue(Stat.EXPANSION_PROGRESS, statLine.getStatValue(Stat.HERITAGE_GAIN));
 
-		if (statLine.getStatValue(Stat.HERITAGE) >= statLine.getStatValue(Stat.EXPANSION_REQUIREMENT)) {
+		if (statLine.getStatValue(Stat.EXPANSION_PROGRESS) >= statLine.getStatValue(Stat.EXPANSION_REQUIREMENT)) {
 
 			Tile expansionTile = getTopExpansionTile();
 
@@ -281,7 +285,7 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 
 		// Clear the assigned unemployed specialists.
 
-		// Assume we lost a citizen, and remove a specialist here.
+		// Assume we lost a citizen, and remove a specialist here. (For starving cities)
 		if (unemployedSpecialists.size() > 0) {
 
 			// FIXME: This is a workaround to avoid send an unnecessary packet from
@@ -305,6 +309,7 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 
 		Json json = new Json();
 
+		// Update city statline
 		CityStatUpdatePacket statUpdatePacket = new CityStatUpdatePacket();
 		for (Stat stat : this.statLine.getStatValues().keySet()) {
 			statUpdatePacket.addStat(name, stat.name(), this.statLine.getStatValues().get(stat));
@@ -329,9 +334,9 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 
 		statLine.reduceStatLine(tile.getStatLine());
 
-		CityStatUpdatePacket statUpdatePacket = new CityStatUpdatePacket();
+		CityStatUpdatePacket cityStatUpdatePacket = new CityStatUpdatePacket();
 		for (Stat stat : this.statLine.getStatValues().keySet()) {
-			statUpdatePacket.addStat(name, stat.name(), this.statLine.getStatValues().get(stat));
+			cityStatUpdatePacket.addStat(name, stat.name(), this.statLine.getStatValues().get(stat));
 		}
 
 		SetCitizenTileWorkerPacket tileWorkerPacket = new SetCitizenTileWorkerPacket();
@@ -340,7 +345,7 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 
 		Json json = new Json();
 		playerOwner.getConn().send(json.toJson(tileWorkerPacket));
-		playerOwner.getConn().send(json.toJson(statUpdatePacket));
+		playerOwner.getConn().send(json.toJson(cityStatUpdatePacket));
 
 		addSpecialistToContainer(this);
 	}
@@ -400,8 +405,6 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 			packet.addStat(name, stat.name(), this.statLine.getStatValues().get(stat));
 		}
 		playerOwner.getConn().send(json.toJson(packet));
-
-		playerOwner.mergeStatLine(building.getStatLine());
 	}
 
 	public Tile getOriginTile() {
@@ -471,11 +474,11 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 			Tile tile = topTiles.get(i);
 
 			float value = getTileStatLine(tile).getStatValue(Stat.FOOD_GAIN) * 4
-					+ getTileStatLine(tile).getStatValue(Stat.GOLD_GAIN) * 2
+					+ getTileStatLine(tile).getStatValue(Stat.GOLD_GAIN) * 1
 					+ getTileStatLine(tile).getStatValue(Stat.PRODUCTION_GAIN) * 1;
 
 			while (j >= 0 && getTileStatLine(topTiles.get(j)).getStatValue(Stat.FOOD_GAIN) * 4
-					+ getTileStatLine(topTiles.get(j)).getStatValue(Stat.GOLD_GAIN) * 2
+					+ getTileStatLine(topTiles.get(j)).getStatValue(Stat.GOLD_GAIN) * 1
 					+ getTileStatLine(topTiles.get(j)).getStatValue(Stat.PRODUCTION_GAIN) * 1 < value) {
 				topTiles.set(j + 1, topTiles.get(j));
 				j--;
@@ -512,6 +515,9 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 					+ getTileStatLine(tile).getStatValue(Stat.PRODUCTION_GAIN) * 4)
 					- tile.getDistanceFrom(originTile) / 32;
 
+			if (tile.containsTileProperty(TileProperty.LUXURY, TileProperty.RESOURCE))
+				value += 4;
+
 			while (j >= 0 && getTileStatLine(topTiles.get(j)).getStatValue(Stat.FOOD_GAIN) * 4
 					+ getTileStatLine(topTiles.get(j)).getStatValue(Stat.GOLD_GAIN) * 1
 					+ getTileStatLine(topTiles.get(j)).getStatValue(Stat.PRODUCTION_GAIN) * 4 < value) {
@@ -528,5 +534,18 @@ public class City implements AttackableEntity, SpecialistContainer, NextTurnList
 	private void setPopulation(int amount) {
 		statLine.setValue(Stat.POPULATION, amount);
 		statLine.setValue(Stat.FOOD_SURPLUS, 0);
+
+		if (amount > 0)
+			statLine.addValue(Stat.SCIENCE_GAIN, 0.5F);
+		else
+			statLine.subValue(Stat.SCIENCE_GAIN, 0.5F);
+	}
+
+	public boolean isCoastal() {
+		for (Tile tile : originTile.getAdjTiles())
+			if (tile.containsTileProperty(TileProperty.WATER))
+				return true;
+
+		return false;
 	}
 }

@@ -8,15 +8,19 @@ import com.badlogic.gdx.utils.Align;
 
 import me.rhin.openciv.Civilization;
 import me.rhin.openciv.game.research.Technology;
+import me.rhin.openciv.listener.CompleteResearchListener;
+import me.rhin.openciv.listener.PickResearchListener;
 import me.rhin.openciv.listener.ResizeListener;
 import me.rhin.openciv.listener.TopShapeRenderListener;
+import me.rhin.openciv.shared.packet.type.CompleteResearchPacket;
 import me.rhin.openciv.ui.background.BlankBackground;
 import me.rhin.openciv.ui.button.type.CloseResearchButton;
 import me.rhin.openciv.ui.game.TechnologyLeaf;
 import me.rhin.openciv.ui.label.CustomLabel;
 import me.rhin.openciv.ui.window.AbstractWindow;
 
-public class ResearchWindow extends AbstractWindow implements ResizeListener, TopShapeRenderListener {
+public class ResearchWindow extends AbstractWindow
+		implements ResizeListener, TopShapeRenderListener, PickResearchListener {
 
 	private ArrayList<TechnologyLeaf> technologyLeafs;
 	private BlankBackground blankBackground;
@@ -45,6 +49,7 @@ public class ResearchWindow extends AbstractWindow implements ResizeListener, To
 
 		Civilization.getInstance().getEventManager().addListener(ResizeListener.class, this);
 		Civilization.getInstance().getEventManager().addListener(TopShapeRenderListener.class, this);
+		Civilization.getInstance().getEventManager().addListener(PickResearchListener.class, this);
 	}
 
 	@Override
@@ -68,7 +73,7 @@ public class ResearchWindow extends AbstractWindow implements ResizeListener, To
 				requiredTechs++;
 			}
 
-			x += requiredTechs * 150;
+			x += requiredTechs * 170;
 
 			int sameXAxisLeafs = 0;
 			for (TechnologyLeaf otherLeaf : technologyLeafs) {
@@ -108,6 +113,16 @@ public class ResearchWindow extends AbstractWindow implements ResizeListener, To
 	}
 
 	@Override
+	public void onPickResearch(Technology tech) {
+		for (TechnologyLeaf leaf : technologyLeafs) {
+			if (leaf.getTech().equals(tech))
+				leaf.setResearching(true);
+			else
+				leaf.setResearching(false);
+		}
+	}
+
+	@Override
 	public void onClose() {
 		super.onClose();
 
@@ -141,7 +156,7 @@ public class ResearchWindow extends AbstractWindow implements ResizeListener, To
 
 	private void addTech(Technology tech) {
 
-		float width = 125;
+		float width = 145;
 		float height = 75;
 
 		float x = 25;
@@ -156,7 +171,7 @@ public class ResearchWindow extends AbstractWindow implements ResizeListener, To
 			requiredTechs++;
 		}
 
-		x += requiredTechs * 150;
+		x += requiredTechs * 170;
 
 		ArrayList<TechnologyLeaf> rowLeafs = new ArrayList<>();
 		for (TechnologyLeaf leaf : technologyLeafs)

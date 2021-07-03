@@ -20,8 +20,8 @@ import me.rhin.openciv.game.map.GameMap;
 import me.rhin.openciv.game.map.tile.Tile;
 import me.rhin.openciv.game.map.tile.TileObserver;
 import me.rhin.openciv.game.player.Player;
-import me.rhin.openciv.listener.NextTurnListener;
 import me.rhin.openciv.listener.BottomShapeRenderListener;
+import me.rhin.openciv.listener.NextTurnListener;
 import me.rhin.openciv.shared.packet.type.MoveUnitPacket;
 import me.rhin.openciv.shared.packet.type.NextTurnPacket;
 import me.rhin.openciv.ui.window.type.UnitCombatWindow;
@@ -32,12 +32,14 @@ public abstract class Unit extends Actor
 
 	protected boolean canAttack;
 	protected ArrayList<AbstractAction> customActions;
+	protected Tile standingTile;
+	protected Sprite targetSelectionSprite;
 	private int id;
 	private Player playerOwner;
 	private ArrayList<Vector2[]> pathVectors;
 	private int pathMovement;
-	private Tile standingTile, targetTile;
-	private Sprite sprite, selectionSprite, targetSelectionSprite;
+	private Tile targetTile;
+	private Sprite sprite, selectionSprite;
 	private Sprite civIconSprite;
 	private boolean selected;
 	private float movement;
@@ -89,7 +91,7 @@ public abstract class Unit extends Actor
 		if (selected)
 			selectionSprite.draw(batch);
 
-		if (targetTile != null && pathMovement <= getCurrentMovement() && pathMovement != 0) {
+		if ((targetTile != null && pathMovement <= getCurrentMovement() && pathMovement != 0) || hasRangedTarget()) {
 			targetSelectionSprite.draw(batch);
 		}
 
@@ -263,7 +265,7 @@ public abstract class Unit extends Actor
 		}
 
 		// Open combat preview window once.
-		if (targetEntity != null && !isUnitCapturable() && wasMouseClick) {
+		if (targetEntity != null && !isUnitCapturable() && wasMouseClick && !isRangedUnit()) {
 			// Close previous combat windows.
 			Civilization.getInstance().getWindowManager().closeWindow(UnitCombatWindow.class);
 			Civilization.getInstance().getWindowManager().addWindow(new UnitCombatWindow(this, targetEntity));
@@ -273,7 +275,8 @@ public abstract class Unit extends Actor
 
 		if (targetEntity != null) {
 
-			if (isUnitCapturable()) {
+			// FIXME: Range units should be able to move onto capturable units.
+			if (isUnitCapturable() || isRangedUnit()) {
 				pathVectors.clear();
 				pathMovement = 0;
 				this.targetTile = null;
@@ -437,7 +440,19 @@ public abstract class Unit extends Actor
 	}
 
 	public void setHealth(float health) {
+
+		if (health <= 0)
+			health = 1;
+
 		this.health = health;
+	}
+
+	public boolean isRangedUnit() {
+		return this instanceof RangedUnit;
+	}
+
+	public boolean hasRangedTarget() {
+		return false;
 	}
 
 	private Tile removeSmallest(ArrayList<Tile> queue, int fScore[][]) {
